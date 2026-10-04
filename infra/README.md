@@ -1,86 +1,108 @@
-# CloudFolio — AWS Deployment Scripts
+# CloudFolio — AI-Assisted Editable Portfolio & Resume Builder
 
-Run these in the **AWS Academy Sandbox's VS Code IDE terminal** (not your
-own machine — that terminal has AWS credentials pre-configured).
+A cloud-native resume builder built for **CSE2025 — AWS Solution Architecture**
+(Dr. Renita R., VIT-AP). Users fill out a form, see a live resume preview,
+download a polished ATS-friendly PDF, and get AI-powered writing help —
+including a job-description match score that tells you how well your
+resume fits a specific role. Deployed on AWS using EC2, RDS, S3, VPC,
+and IAM.
 
-## Before you start
+## Features
 
-1. **Make your GitHub repo public** (or EC2's `git clone` in step 3 will fail).
-2. Push your `backend/` and `frontend/` folders to it — `00-variables.sh`
-   is safe to commit (no secrets in it).
-3. In the Sandbox IDE terminal, create your secrets file (this file is
-   git-ignored and NEVER gets pushed to GitHub — you recreate it each
-   session since the Sandbox wipes its filesystem too):
-   ```bash
-   cp 00-secrets.sh.example 00-secrets.sh
-   nano 00-secrets.sh   # or any editor — fill in DB_PASSWORD and GEMINI_API_KEY
-   ```
-4. If your GitHub repo URL changed, edit `GITHUB_REPO_URL` in `00-variables.sh`
-   (this one IS committed, so only do this if the URL itself needs updating,
-   not for secrets).
+- **Resume builder with live preview** — fill in details, see the formatted
+  resume update as you type
+- **ATS-friendly PDF export** — single-column, parser-safe layout (ReportLab)
+- **AI Improve** on every text field — professional summary, each experience
+  entry, and each project description can be rewritten by Gemini on demand,
+  with a visible word-level diff (added text in green, removed in red) so
+  you always see exactly what changed, never a silent swap
+- **Job Description Match** — paste a JD, get a 0–100 match score, matched
+  vs. missing keywords, and concrete suggestions to improve alignment
+- **Save & edit** — resumes persist (SQLite locally, RDS MySQL in the cloud)
+  and can be revisited and updated anytime
+- **Graceful AI degradation** — every AI feature works (and clearly says so)
+  even with no API key configured, and automatically retries + falls back to
+  a second model if Gemini is temporarily overloaded, rather than crashing
 
-## Run order
+## Tech stack
 
-```bash
-chmod +x *.sh
-source 00-variables.sh      # loads config + secrets (re-run if you open a new terminal)
-./01-network-setup.sh       # VPC discovery + security groups  (~10 sec)
-./02-rds-setup.sh           # RDS MySQL                        (~5-10 min, slow — be patient)
-./03-ec2-launch.sh          # EC2 + auto-deploy via user-data   (~1-2 min + ~2 min app install)
-./04-s3-setup.sh            # S3 bucket + encryption + lifecycle (~10 sec)
-```
+| Layer | Technology |
+|---|---|
+| Frontend | Plain HTML/CSS/JS — no build step, served directly by the backend |
+| Backend | FastAPI + SQLAlchemy |
+| Database | SQLite (local) / RDS MySQL (deployed) — same code, switches via `DATABASE_URL` |
+| PDF generation | ReportLab |
+| AI | Gemini (`google-genai`), with retry + model fallback on overload |
+| Cloud | AWS — EC2, RDS, S3, VPC, Security Groups, IAM, SSM |
 
-Each script prints what it did and a **screenshot suggestion** for your
-final submission — take the screenshot right after that script finishes,
-don't wait until the end (the Sandbox session will eventually expire).
+## Running it locally
 
-After step 3, **wait ~2 minutes** for the app to finish installing on the
-instance, then open the URL it prints (`http://<public-ip>:8000`).
-
-If the app doesn't load after a few minutes, check what went wrong without
-needing SSH:
-```bash
-aws ssm start-session --target <INSTANCE_ID> --region us-east-1
-sudo cat /var/log/cloudfolio-userdata.log
-```
-
-## Re-running after a session reset
-
-The Sandbox wipes everything when the session timer ends. Next time you
-start a new session, just run the same 4 scripts again in order — the
-`.infra-state` file from last time is harmless to leave around; each
-script will just create fresh resources.
-
-## Cleaning up early
+One command, one terminal — the backend serves the frontend directly:
 
 ```bash
-./99-teardown.sh
+cd backend
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8000
 ```
 
-Deletes the EC2 instance, RDS database, and S3 bucket — useful if you
-want to free up credit before the session naturally expires, or before
-re-running everything from a clean slate.
+**Windows PowerShell:** `python -m uvicorn main:app --reload --port 8000`
 
-## What each script maps to in the course syllabus
+Open `http://localhost:8000`. This creates `cloudfolio.db` (SQLite)
+automatically on first run — no separate database setup needed for local use.
 
-| Script | AWS Services | Course Module |
-|---|---|---|
-| `01-network-setup.sh` | VPC, Security Groups | Module 2 — Networking |
-| `02-rds-setup.sh` | RDS (MySQL) | Module 3 — Databases |
-| `03-ec2-launch.sh` | EC2, IAM (LabInstanceProfile), SSM | Module 1, 4 — Compute, IAM |
-| `04-s3-setup.sh` | S3 (encryption, lifecycle policy) | Module 1 — Storage |
+### Enabling AI features
 
-## Known Sandbox-driven compromises (be ready to explain these in viva)
+```bash
+cd backend
+cp .env.example .env
+```
 
-- **No custom VPC** — uses the Sandbox's default VPC. Custom VPC creation
-  wasn't confirmed to work in this Sandbox; the security group
-  segmentation (EC2 open to internet on 8000, RDS only reachable from
-  EC2's security group) still demonstrates the access-control concept.
-- **No Multi-AZ RDS** — explicitly unsupported by the Sandbox.
-- **IAM via LabRole/LabInstanceProfile**, not custom least-privilege
-  policies — the Sandbox's IAM is read-only for students.
-- **No SQS** — wasn't in the Sandbox's service list, so the original
-  async-PDF-via-queue design isn't implemented; PDF generation is
-  synchronous instead.
-- **KMS is AWS-managed (SSE-S3), not customer-managed** — Sandbox KMS
-  access is list-only, no key creation.
+Open `.env` and paste your real Gemini API key in place of `your-key-here`.
+`.env` is git-ignored — your key is never committed.
+
+Confirm the backend sees your key (without revealing it) at
+`http://localhost:8000/api/ai/status` once the server is running.
+
+## Deploying to AWS
+
+Full deployment scripts live in [`infra/`](infra/) — see
+[`infra/README.md`](infra/README.md) for the exact run order and
+screenshot checklist.
+
+In short: `infra/01-network-setup.sh` through `04-s3-setup.sh` provision a
+VPC/security groups, RDS MySQL, an EC2 instance (which auto-clones this repo
+and starts the app via `systemd` on boot), and an S3 bucket — in that order,
+using the AWS CLI.
+
+## Project structure
+
+```
+cloudfolio-app/
+├── backend/
+│   ├── main.py              FastAPI app — all routes, serves the frontend too
+│   ├── models.py            SQLAlchemy model (resumes table)
+│   ├── database.py          DB connection — SQLite locally, RDS MySQL on AWS
+│   ├── schemas.py           Pydantic request/response schemas
+│   ├── pdf_generator.py     ReportLab PDF generation
+│   ├── ai_suggestions.py    Gemini calls — field improvement + JD matching
+│   └── requirements.txt
+├── frontend/
+│   ├── index.html
+│   ├── app.js                Form handling, live preview, AI diff rendering
+│   └── style.css
+├── infra/                    AWS deployment scripts (see infra/README.md)
+└── README.md                 This file
+```
+
+## AWS architecture & course requirement mapping
+
+| Course Module | Services used |
+|---|---|
+| Module 1 — Compute & Storage | EC2, S3 (encryption + lifecycle policy) |
+| Module 2 — Networking | VPC, Security Groups |
+| Module 3 — Databases | RDS (MySQL) |
+| Module 4 — IAM & Security | IAM (via Sandbox-provided LabRole/LabInstanceProfile) |
+
+RDS is only reachable from the EC2 instance's security group — never
+exposed directly to the internet. EC2 instance access uses AWS Systems
+Manager Session Manager rather than SSH key pairs.
