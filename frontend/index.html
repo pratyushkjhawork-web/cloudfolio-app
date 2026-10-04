@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CloudFolio — Resume Builder</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<header>
+  <h1>CloudFolio</h1>
+  <p class="tagline">AI-assisted, editable portfolio &amp; resume builder</p>
+</header>
+
+<main class="layout">
+
+  <!-- ===== FORM (left) ===== -->
+  <section class="form-panel">
+    <h2>Your Details</h2>
+
+    <label>Full Name</label>
+    <input id="full_name" type="text" placeholder="Pratyush Kumar Jha" />
+
+    <label>Email</label>
+    <input id="email" type="email" placeholder="you@example.com" />
+
+    <label>Phone</label>
+    <input id="phone" type="text" placeholder="+91 9xxxxxxxxx" />
+
+    <label>Location</label>
+    <input id="location" type="text" placeholder="Hyderabad, India" />
+
+    <label>LinkedIn</label>
+    <input id="linkedin" type="text" placeholder="linkedin.com/in/..." />
+
+    <label>GitHub</label>
+    <input id="github" type="text" placeholder="github.com/..." />
+
+    <label>
+      Professional Summary
+      <button class="ai-btn" data-target="summary" data-type="summary">✨ AI Improve</button>
+    </label>
+    <textarea id="summary" rows="3" placeholder="A short summary about you..."></textarea>
+    <div id="summary-ai-diff" class="ai-diff-box" style="display:none;"></div>
+
+    <label>Skills (comma-separated)</label>
+    <input id="skills" type="text" placeholder="Python, FastAPI, AWS, SQL" />
+
+    <hr />
+    <h3>Experience</h3>
+    <div id="experience-list"></div>
+    <button type="button" class="add-btn" onclick="addExperience()">+ Add Experience</button>
+
+    <hr />
+    <h3>Projects</h3>
+    <div id="projects-list"></div>
+    <button type="button" class="add-btn" onclick="addProject()">+ Add Project</button>
+
+    <hr />
+    <h3>Education</h3>
+    <div id="education-list"></div>
+    <button type="button" class="add-btn" onclick="addEducation()">+ Add Education</button>
+
+    <div class="actions">
+      <button id="save-btn" class="primary-btn" onclick="saveResume()">Save Resume</button>
+      <button id="pdf-btn" class="secondary-btn" onclick="downloadPdf()" disabled>Download PDF</button>
+    </div>
+    <p id="status-msg"></p>
+
+    <hr />
+    <h3>Match Against a Job Description</h3>
+    <p class="hint">Save your resume first, then paste a job description to see how well it matches.</p>
+    <textarea id="jd-text" rows="5" placeholder="Paste the job description here..."></textarea>
+    <button id="jd-match-btn" class="secondary-btn" style="margin-top:8px; width:100%;" onclick="matchJobDescription()" disabled>Analyze Match</button>
+    <div id="jd-result" class="jd-result" style="display:none;"></div>
+  </section>
+
+  <!-- ===== LIVE PREVIEW (right) ===== -->
+  <section class="preview-panel">
+    <h2>Live Preview</h2>
+    <div id="preview" class="resume-preview">
+      <p class="placeholder">Fill the form to see your resume preview here.</p>
+    </div>
+  </section>
+
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
