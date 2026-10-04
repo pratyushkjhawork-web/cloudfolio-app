@@ -6,17 +6,24 @@ own machine — that terminal has AWS credentials pre-configured).
 ## Before you start
 
 1. **Make your GitHub repo public** (or EC2's `git clone` in step 3 will fail).
-2. Push your `backend/` and `frontend/` folders to it.
-3. Edit `00-variables.sh`:
-   - `GITHUB_REPO_URL` — your actual repo URL
-   - `DB_PASSWORD` — pick your own (8+ chars, no `@` or quotes)
-   - `GEMINI_API_KEY` — your real key
+2. Push your `backend/` and `frontend/` folders to it — `00-variables.sh`
+   is safe to commit (no secrets in it).
+3. In the Sandbox IDE terminal, create your secrets file (this file is
+   git-ignored and NEVER gets pushed to GitHub — you recreate it each
+   session since the Sandbox wipes its filesystem too):
+   ```bash
+   cp 00-secrets.sh.example 00-secrets.sh
+   nano 00-secrets.sh   # or any editor — fill in DB_PASSWORD and GEMINI_API_KEY
+   ```
+4. If your GitHub repo URL changed, edit `GITHUB_REPO_URL` in `00-variables.sh`
+   (this one IS committed, so only do this if the URL itself needs updating,
+   not for secrets).
 
 ## Run order
 
 ```bash
 chmod +x *.sh
-source 00-variables.sh      # loads config (re-run this if you open a new terminal)
+source 00-variables.sh      # loads config + secrets (re-run if you open a new terminal)
 ./01-network-setup.sh       # VPC discovery + security groups  (~10 sec)
 ./02-rds-setup.sh           # RDS MySQL                        (~5-10 min, slow — be patient)
 ./03-ec2-launch.sh          # EC2 + auto-deploy via user-data   (~1-2 min + ~2 min app install)

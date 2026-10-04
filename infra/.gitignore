@@ -1,0 +1,16 @@
+# Secrets — never commit real API keys or passwords
+.env
+infra/00-secrets.sh
+infra/.infra-state
+
+# Python
+__pycache__/
+*.pyc
+venv/
+
+# Database
+*.db
+
+# OS
+.DS_Store
+Thumbs.db
